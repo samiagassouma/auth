@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Log In{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <div>
+        <span class="meta">Welcome Back</span>
+        <h1>Log in to continue.</h1>
+        <p>Use your username and password to access the protected dashboard.</p>
+    </div>
+
+    <form method="post" id="login-form">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% for field in form %}
+            <div>
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {{ field.errors }}
+            </div>
+        {% endfor %}
+        <div class="actions">
+            <button type="submit">Log in</button>
+            <a href="{% url 'signup' %}" class="button secondary">Create account</a>
+            <a href="{% url 'password_reset' %}" class="button secondary">Forgot password?</a>
+        </div>
+    </form>
+    <div class="auth-status" id="login-status" role="status" aria-live="polite"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+    const form = document.getElementById('login-form');
+    const status = document.getElementById('login-status');
+
+    const showStatus = (message, isError = false) => {
+        status.textContent = message;
+        status.classList.toggle('error', isError);
+        status.classList.add('visible');
+    };
+
+    const storeTokens = (data) => {
+        localStorage.setItem('authAccessToken', data.access);
+        localStorage.setItem('authRefreshToken', data.refresh);
+    };
+
+    const extractError = async (response) => {
+        try {
+            const data = await response.json();
+            return data.detail || data.non_field_errors?.join(' ') || Object.values(data).flat().join(' ');
+        } catch (error) {
+            return 'Login failed.';
+        }
+    };
+
+    form.addEventListener('submit', async (event) => {
+        if (form.dataset.nativeSubmit === 'true') {
+            return;
+        }
+
+        event.preventDefault();
+        showStatus('Signing in...');
+
+        const payload = {
+            username: form.elements.username.value,
+            password: form.elements.password.value,
+        };
+
+        try {
+            const response = await fetch("{% url 'api_login' %}", {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                showStatus(await extractError(response), true);
+                return;
+            }
+
+            const data = await response.json();
+            storeTokens(data);
+            form.dataset.nativeSubmit = 'true';
+            form.submit();
+        } catch (error) {
+            showStatus('Login failed. Please try again.', true);
+        }
+    });
+})();
+</script>
+{% endblock %}

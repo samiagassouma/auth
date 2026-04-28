@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Authentication{% endblock %}</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f5efe6;
+            --panel: #fffdf9;
+            --text: #1d1f20;
+            --muted: #6a6761;
+            --accent: #0f766e;
+            --accent-dark: #115e59;
+            --border: #ded6cb;
+            --danger: #b42318;
+            --success: #0f7b47;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Georgia, "Times New Roman", serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 35%),
+                linear-gradient(135deg, #efe4d4, var(--bg));
+        }
+
+        .shell {
+            width: min(100%, 960px);
+            margin: 0 auto;
+            padding: 32px 20px 48px;
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .nav a,
+        button {
+            color: inherit;
+            font: inherit;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .card {
+            background: rgba(255, 253, 249, 0.92);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 18px 45px rgba(43, 38, 33, 0.08);
+            backdrop-filter: blur(8px);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: clamp(2rem, 4vw, 3rem);
+            line-height: 1.05;
+        }
+
+        p {
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        form {
+            display: grid;
+            gap: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: #fff;
+        }
+
+        ul.errorlist {
+            margin: 6px 0 0;
+            padding-left: 18px;
+            color: var(--danger);
+        }
+
+        .helptext {
+            display: block;
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .button,
+        button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 18px;
+            border: none;
+            border-radius: 999px;
+            background: var(--accent);
+            color: #fff;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .button.secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .hero {
+            display: grid;
+            gap: 20px;
+        }
+
+        .meta {
+            display: inline-block;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--accent-dark);
+        }
+
+        .messages {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .message {
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: rgba(15, 118, 110, 0.08);
+        }
+
+        .message.error {
+            color: var(--danger);
+            background: rgba(180, 35, 24, 0.08);
+        }
+
+        .message.success {
+            color: var(--success);
+            background: rgba(15, 123, 71, 0.08);
+        }
+
+        .auth-status {
+            display: none;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: rgba(15, 118, 110, 0.08);
+            color: var(--accent-dark);
+        }
+
+        .auth-status.visible {
+            display: block;
+        }
+
+        .auth-status.error {
+            color: var(--danger);
+            background: rgba(180, 35, 24, 0.08);
+        }
+
+        .is-hidden {
+            display: none;
+        }
+
+        @media (max-width: 640px) {
+            .shell {
+                padding: 20px 14px 32px;
+            }
+
+            .card {
+                padding: 22px;
+                border-radius: 18px;
+            }
+
+            .nav {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <nav class="nav">
+            <div class="brand">Auth Demo</div>
+            <div class="nav-links">
+                {% if user.is_authenticated %}
+                    <span>Signed in as {{ user.username }}</span>
+                    <form method="post" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit">Log out</button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'login' %}">Log in</a>
+                    <a href="{% url 'signup' %}" class="button secondary">Create account</a>
+                {% endif %}
+            </div>
+        </nav>
+
+        <main class="card">
+            {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                        <div class="message {{ message.tags }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

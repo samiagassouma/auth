@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <div>
+        <span class="meta">New Here</span>
+        <h1>Create your account.</h1>
+        <p>Sign up with a username, email, and password. We'll email you a verification code before you can log in.</p>
+    </div>
+
+    <form method="post" id="signup-form">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% for field in form %}
+            <div>
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {{ field.errors }}
+                {% if field.help_text %}
+                    <small class="helptext">{{ field.help_text|safe }}</small>
+                {% endif %}
+            </div>
+        {% endfor %}
+        <div class="actions">
+            <button type="submit">Create account</button>
+            <a href="{% url 'login' %}" class="button secondary">Back to login</a>
+        </div>
+    </form>
+
+    <form id="verify-email-form" class="is-hidden">
+        <div>
+            <label for="otp">Verification code</label>
+            <input id="otp" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required>
+        </div>
+        <div class="actions">
+            <button type="submit">Verify email</button>
+            <a href="{% url 'login' %}" class="button secondary">Back to login</a>
+        </div>
+    </form>
+
+    <div class="auth-status" id="signup-status" role="status" aria-live="polite"></div>
+</div>
+{% endblock %}
+

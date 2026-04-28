@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <div>
+        <span class="meta">Protected Area</span>
+        <h1>You're authenticated.</h1>
+        <p>This dashboard is only available to signed-in users.</p>
+    </div>
+
+    <p>
+        Hello <strong>{{ user.username }}</strong>.
+        Your account email is <strong>{{ user.email|default:"not set" }}</strong>.
+    </p>
+
+    <div class="actions">
+        <a href="{% url 'dashboard' %}" class="button">Refresh dashboard</a>
+    </div>
+</div>
+{% endblock %}
