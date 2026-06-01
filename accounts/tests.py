@@ -7,6 +7,7 @@ from django.test.utils import override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
 
+from .forms import LoginForm
 from .google import GoogleAuthError
 from .models import EmailVerificationToken, OneTimePassword
 
@@ -20,19 +21,69 @@ class AuthenticationFlowTests(TestCase):
         response = self.client.post(
             reverse('signup'),
             {
-                'username': 'alice',
+                'full_name': 'Alice Example',
                 'email': 'alice@example.com',
-                'password1': 'StrongPassword123',
-                'password2': 'StrongPassword123',
+                'password1': 'StrongPassword123!',
+                'password2': 'StrongPassword123!',
             },
         )
 
         self.assertRedirects(response, reverse('check_email'))
-        user = User.objects.get(username='alice')
+        user = User.objects.get(email='alice@example.com')
         verification = EmailVerificationToken.objects.get(user=user)
+        self.assertEqual(user.get_full_name(), 'Alice Example')
         self.assertFalse(user.is_active)
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn(str(verification.token), mail.outbox[0].body)
+
+    def test_signup_rejects_password_without_required_complexity(self):
+        response = self.client.post(
+            reverse('signup'),
+            {
+                'full_name': 'Alice Example',
+                'email': 'alice@example.com',
+                'password1': 'password',
+                'password2': 'password',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Password must contain at least one uppercase letter.')
+        self.assertContains(response, 'Password must contain at least one special character.')
+        self.assertFalse(User.objects.filter(email='alice@example.com').exists())
+
+    def test_signup_rejects_duplicate_email(self):
+        User.objects.create_user(username='Alice', email='alice@example.com')
+
+        response = self.client.post(
+            reverse('signup'),
+            {
+                'full_name': 'Alice Example',
+                'email': 'ALICE@example.com',
+                'password1': 'StrongPassword123!',
+                'password2': 'StrongPassword123!',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'A user with that email already exists.')
+        self.assertEqual(User.objects.filter(email__iexact='alice@example.com').count(), 1)
+
+    def test_signup_rejects_invalid_full_name_and_email(self):
+        response = self.client.post(
+            reverse('signup'),
+            {
+                'full_name': 'A',
+                'email': 'not-an-email',
+                'password1': 'StrongPassword123!',
+                'password2': 'StrongPassword123!',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Full name must be 2 to 150 characters.')
+        self.assertContains(response, 'Enter a valid email address.')
+        self.assertFalse(User.objects.filter(first_name='A').exists())
 
     def test_verification_activates_user_and_logs_them_in(self):
         user = User.objects.create_user(
@@ -63,7 +114,7 @@ class AuthenticationFlowTests(TestCase):
         response = self.client.post(
             reverse('login'),
             {
-                'username': 'alice',
+                'email': 'alice@example.com',
                 'password': 'StrongPassword123',
             },
         )
@@ -73,12 +124,16 @@ class AuthenticationFlowTests(TestCase):
         self.assertNotIn('_auth_user_id', self.client.session)
 
     def test_login_allows_existing_user_to_access_dashboard(self):
-        User.objects.create_user(username='bob', password='StrongPassword123')
+        User.objects.create_user(
+            username='bob',
+            email='bob@example.com',
+            password='StrongPassword123',
+        )
 
         response = self.client.post(
             reverse('login'),
             {
-                'username': 'bob',
+                'email': 'bob@example.com',
                 'password': 'StrongPassword123',
             },
         )
@@ -144,23 +199,59 @@ class AuthenticationFlowTests(TestCase):
         response = self.api_client.post(
             reverse('api_signup'),
             {
-                'username': 'frank',
+                'full_name': 'Frank Example',
                 'email': 'frank@example.com',
-                'password': 'StrongPassword123',
-                'password2': 'StrongPassword123',
+                'password': 'StrongPassword123!',
+                'password2': 'StrongPassword123!',
             },
             format='json',
         )
 
         self.assertEqual(response.status_code, 201)
-        user = User.objects.get(username='frank')
+        user = User.objects.get(email='frank@example.com')
         otp = OneTimePassword.objects.get(
             user=user,
             purpose=OneTimePassword.EMAIL_VERIFICATION,
         )
+        self.assertEqual(user.get_full_name(), 'Frank Example')
+        self.assertEqual(response.data['user']['full_name'], 'Frank Example')
+        self.assertNotIn('username', response.data['user'])
         self.assertFalse(user.is_active)
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn(otp.code, mail.outbox[0].body)
+
+    def test_api_signup_rejects_password_without_required_complexity(self):
+        response = self.api_client.post(
+            reverse('api_signup'),
+            {
+                'full_name': 'Frank Example',
+                'email': 'frank@example.com',
+                'password': 'Password1',
+                'password2': 'Password1',
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Password must contain at least one special character.', str(response.data))
+        self.assertFalse(User.objects.filter(email='frank@example.com').exists())
+
+    def test_api_signup_rejects_invalid_full_name_and_email(self):
+        response = self.api_client.post(
+            reverse('api_signup'),
+            {
+                'full_name': 'F',
+                'email': 'not-an-email',
+                'password': 'StrongPassword123!',
+                'password2': 'StrongPassword123!',
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Full name must be 2 to 150 characters.', str(response.data))
+        self.assertIn('Enter a valid email address.', str(response.data))
+        self.assertFalse(User.objects.filter(first_name='F').exists())
 
     def test_api_verify_email_activates_user(self):
         user = User.objects.create_user(
@@ -193,6 +284,27 @@ class AuthenticationFlowTests(TestCase):
         user = User.objects.create_user(
             username='heidi',
             email='heidi@example.com',
+            first_name='Heidi Example',
+            password='StrongPassword123',
+        )
+
+        response = self.api_client.post(
+            reverse('api_login'),
+            {'email': 'heidi@example.com', 'password': 'StrongPassword123'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('access', response.data)
+        self.assertIn('refresh', response.data)
+        self.assertEqual(response.data['user']['id'], user.id)
+        self.assertEqual(response.data['user']['full_name'], 'Heidi Example')
+        self.assertNotIn('username', response.data['user'])
+
+    def test_api_login_requires_email(self):
+        User.objects.create_user(
+            username='heidi',
+            email='heidi@example.com',
             password='StrongPassword123',
         )
 
@@ -202,10 +314,23 @@ class AuthenticationFlowTests(TestCase):
             format='json',
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('access', response.data)
-        self.assertIn('refresh', response.data)
-        self.assertEqual(response.data['user']['id'], user.id)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('email', response.data)
+
+    def test_login_form_authenticates_with_email_and_password(self):
+        user = User.objects.create_user(
+            username='heidi',
+            email='heidi@example.com',
+            password='StrongPassword123',
+        )
+
+        form = LoginForm(data={
+            'email': 'heidi@example.com',
+            'password': 'StrongPassword123',
+        })
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.get_user(), user)
 
     def test_login_page_allows_email_identifier(self):
         User.objects.create_user(
@@ -216,7 +341,7 @@ class AuthenticationFlowTests(TestCase):
 
         response = self.client.post(
             reverse('login'),
-            {'username': 'heidi@example.com', 'password': 'StrongPassword123'},
+            {'email': 'heidi@example.com', 'password': 'StrongPassword123'},
         )
 
         self.assertRedirects(response, reverse('dashboard'))
@@ -231,7 +356,7 @@ class AuthenticationFlowTests(TestCase):
 
         response = self.api_client.post(
             reverse('api_login'),
-            {'username': 'ivan', 'password': 'StrongPassword123'},
+            {'email': 'ivan@example.com', 'password': 'StrongPassword123'},
             format='json',
         )
 
@@ -246,7 +371,7 @@ class AuthenticationFlowTests(TestCase):
         )
         login_response = self.api_client.post(
             reverse('api_login'),
-            {'username': 'judy', 'password': 'StrongPassword123'},
+            {'email': 'judy@example.com', 'password': 'StrongPassword123'},
             format='json',
         )
 
@@ -319,7 +444,7 @@ class AuthenticationFlowTests(TestCase):
             'sub': 'google-user-id',
             'email': 'maya@example.com',
             'email_verified': True,
-            'given_name': 'Maya',
+            'name': 'Maya Example',
         }
 
         response = self.api_client.post(
@@ -331,10 +456,13 @@ class AuthenticationFlowTests(TestCase):
         user = User.objects.get(email='maya@example.com')
         self.assertEqual(response.status_code, 200)
         self.assertTrue(user.is_active)
+        self.assertEqual(user.get_full_name(), 'Maya Example')
         self.assertFalse(user.has_usable_password())
         self.assertIn('access', response.data)
         self.assertIn('refresh', response.data)
         self.assertEqual(response.data['user']['id'], user.id)
+        self.assertEqual(response.data['user']['full_name'], 'Maya Example')
+        self.assertNotIn('username', response.data['user'])
         self.assertEqual(int(self.api_client.session['_auth_user_id']), user.id)
 
     @patch('accounts.serializers.GoogleLoginSerializer.verifier_class')

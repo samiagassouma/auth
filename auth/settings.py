@@ -27,7 +27,8 @@ SECRET_KEY = 'django-insecure-c3!e^dmuqom2(7rar*(vdswt$4&soz2xkeukit@xgl2#9&=j=n
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
 
 
 # Application definition
@@ -127,7 +128,10 @@ LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 DEFAULT_FROM_EMAIL = 'Auth Demo <no-reply@example.com>'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-GOOGLE_OAUTH2_CLIENT_ID = os.environ.get('GOOGLE_OAUTH2_CLIENT_ID', '257933467256-brmpt5peeuoven9fafa1p0l0j85nq7b2.apps.googleusercontent.com')
+GOOGLE_OAUTH2_CLIENT_ID = os.environ.get(
+    'GOOGLE_OAUTH2_CLIENT_ID',
+    '257933467256-brmpt5peeuoven9fafa1p0l0j85nq7b2.apps.googleusercontent.com',
+)
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (

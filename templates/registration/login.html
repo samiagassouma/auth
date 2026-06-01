@@ -7,7 +7,7 @@
     <div>
         <span class="meta">Welcome Back</span>
         <h1>Log in to continue.</h1>
-        <p>Use your username and password to access the protected dashboard.</p>
+        <p>Use your email and password to access the protected dashboard.</p>
     </div>
 
     <form method="post" id="login-form">
@@ -26,15 +26,25 @@
             <a href="{% url 'password_reset' %}" class="button secondary">Forgot password?</a>
         </div>
     </form>
+    {% if google_oauth2_client_id %}
+        <div class="auth-divider">or</div>
+        <div class="google-auth">
+            <div id="google-login-button"></div>
+        </div>
+    {% endif %}
     <div class="auth-status" id="login-status" role="status" aria-live="polite"></div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+{% if google_oauth2_client_id %}
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+{% endif %}
 <script>
 (() => {
     const form = document.getElementById('login-form');
     const status = document.getElementById('login-status');
+    const googleClientId = "{{ google_oauth2_client_id|escapejs }}";
 
     const showStatus = (message, isError = false) => {
         status.textContent = message;
@@ -65,7 +75,7 @@
         showStatus('Signing in...');
 
         const payload = {
-            username: form.elements.username.value,
+            email: form.elements.email.value,
             password: form.elements.password.value,
         };
 
@@ -89,6 +99,56 @@
             showStatus('Login failed. Please try again.', true);
         }
     });
+
+    const handleGoogleCredential = async (credentialResponse) => {
+        showStatus('Signing in with Google...');
+
+        try {
+            const response = await fetch("{% url 'api_google_login' %}", {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({id_token: credentialResponse.credential}),
+            });
+
+            if (!response.ok) {
+                showStatus(await extractError(response), true);
+                return;
+            }
+
+            const data = await response.json();
+            storeTokens(data);
+            window.location.assign("{% url 'dashboard' %}");
+        } catch (error) {
+            showStatus('Google sign-in failed. Please try again.', true);
+        }
+    };
+
+    const renderGoogleButton = (attemptsLeft = 20) => {
+        const target = document.getElementById('google-login-button');
+        if (!googleClientId || !target) {
+            return;
+        }
+
+        if (!window.google?.accounts?.id) {
+            if (attemptsLeft > 0) {
+                window.setTimeout(() => renderGoogleButton(attemptsLeft - 1), 150);
+            }
+            return;
+        }
+
+        window.google.accounts.id.initialize({
+            client_id: googleClientId,
+            callback: handleGoogleCredential,
+        });
+        window.google.accounts.id.renderButton(target, {
+            theme: 'outline',
+            size: 'large',
+            text: 'signin_with',
+            width: 260,
+        });
+    };
+
+    renderGoogleButton();
 })();
 </script>
 {% endblock %}

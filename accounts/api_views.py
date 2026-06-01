@@ -12,6 +12,7 @@ from .serializers import (
     SignupSerializer,
     VerifyEmailSerializer,
 )
+from .user_utils import get_user_full_name
 
 
 class SignupAPIView(APIView):
@@ -26,7 +27,7 @@ class SignupAPIView(APIView):
                 'detail': 'Signup successful. Check your email for the verification OTP.',
                 'user': {
                     'id': user.id,
-                    'username': user.username,
+                    'full_name': get_user_full_name(user),
                     'email': user.email,
                 },
             },
@@ -48,7 +49,7 @@ class VerifyEmailAPIView(APIView):
                 'refresh': data['refresh'],
                 'user': {
                     'id': data['user'].id,
-                    'username': data['user'].username,
+                    'full_name': get_user_full_name(data['user']),
                     'email': data['user'].email,
                 },
             }
@@ -77,7 +78,7 @@ class LoginAPIView(APIView):
                 'refresh': serializer.validated_data['refresh'],
                 'user': {
                     'id': serializer.validated_data['user'].id,
-                    'username': serializer.validated_data['user'].username,
+                    'full_name': get_user_full_name(serializer.validated_data['user']),
                     'email': serializer.validated_data['user'].email,
                 },
             }
@@ -102,7 +103,7 @@ class GoogleLoginAPIView(APIView):
                 'refresh': data['refresh'],
                 'user': {
                     'id': data['user'].id,
-                    'username': data['user'].username,
+                    'full_name': get_user_full_name(data['user']),
                     'email': data['user'].email,
                 },
             }

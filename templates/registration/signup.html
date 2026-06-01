@@ -7,7 +7,7 @@
     <div>
         <span class="meta">New Here</span>
         <h1>Create your account.</h1>
-        <p>Sign up with a username, email, and password. We'll email you a verification code before you can log in.</p>
+        <p>Sign up with your full name, email, and password. We'll email you a verification code before you can log in.</p>
     </div>
 
     <form method="post" id="signup-form">
@@ -29,6 +29,16 @@
         </div>
     </form>
 
+    {% if google_oauth2_client_id %}
+        <div class="auth-divider">or</div>
+        <div class="google-auth">
+            <div id="google-signup-button"></div>
+        </div>
+    {% else %}
+        <p class="auth-note">Google signup is not configured.</p>
+    {% endif %}
+
+
     <form id="verify-email-form" class="is-hidden">
         <div>
             <label for="otp">Verification code</label>
@@ -44,3 +54,84 @@
 </div>
 {% endblock %}
 
+{% block scripts %}
+{% if google_oauth2_client_id %}
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+{% endif %}
+<script>
+(() => {
+    const status = document.getElementById('signup-status');
+    const googleClientId = "{{ google_oauth2_client_id|escapejs }}";
+
+    const showStatus = (message, isError = false) => {
+        status.textContent = message;
+        status.classList.toggle('error', isError);
+        status.classList.add('visible');
+    };
+
+    const storeTokens = (data) => {
+        localStorage.setItem('authAccessToken', data.access);
+        localStorage.setItem('authRefreshToken', data.refresh);
+    };
+
+    const extractError = async (response) => {
+        try {
+            const data = await response.json();
+            return data.detail || data.non_field_errors?.join(' ') || Object.values(data).flat().join(' ');
+        } catch (error) {
+            return 'Google signup failed.';
+        }
+    };
+
+    const handleGoogleCredential = async (credentialResponse) => {
+        showStatus('Creating account with Google...');
+
+        try {
+            const response = await fetch("{% url 'api_google_login' %}", {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({id_token: credentialResponse.credential}),
+            });
+
+            if (!response.ok) {
+                showStatus(await extractError(response), true);
+                return;
+            }
+
+            const data = await response.json();
+            storeTokens(data);
+            window.location.assign("{% url 'dashboard' %}");
+        } catch (error) {
+            showStatus('Google signup failed. Please try again.', true);
+        }
+    };
+
+    const renderGoogleButton = (attemptsLeft = 20) => {
+        const target = document.getElementById('google-signup-button');
+        if (!googleClientId || !target) {
+            return;
+        }
+
+        if (!window.google?.accounts?.id) {
+            if (attemptsLeft > 0) {
+                window.setTimeout(() => renderGoogleButton(attemptsLeft - 1), 150);
+            }
+            return;
+        }
+
+        window.google.accounts.id.initialize({
+            client_id: googleClientId,
+            callback: handleGoogleCredential,
+        });
+        window.google.accounts.id.renderButton(target, {
+            theme: 'outline',
+            size: 'large',
+            text: 'signup_with',
+            width: 260,
+        });
+    };
+
+    renderGoogleButton();
+})();
+</script>
+{% endblock %}

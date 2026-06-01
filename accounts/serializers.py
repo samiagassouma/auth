@@ -9,6 +9,15 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .emails import send_email_verification_otp, send_password_reset_otp
 from .google import GoogleAuthError, GoogleIDTokenVerifier
 from .models import EmailVerificationToken, OneTimePassword
+from .user_utils import build_unique_username
+from .validators import (
+    EMAIL_MAX_LENGTH,
+    FULL_NAME_MAX_LENGTH,
+    FULL_NAME_MIN_LENGTH,
+    validate_signup_email,
+    validate_signup_full_name,
+    validate_signup_password,
+)
 
 
 User = get_user_model()
@@ -23,35 +32,30 @@ def build_token_response(user):
     }
 
 
-def build_unique_username(email, preferred_username=''):
-    base = preferred_username or email.split('@', 1)[0]
-    base = ''.join(char for char in base if char.isalnum() or char in ('_', '-'))[:140]
-    if not base:
-        base = 'google_user'
-
-    username = base
-    counter = 1
-    while User.objects.filter(username__iexact=username).exists():
-        suffix = str(counter)
-        username = f'{base[:150 - len(suffix)]}{suffix}'
-        counter += 1
-    return username
-
-
 class SignupSerializer(serializers.Serializer):
-    username = serializers.CharField(max_length=150)
-    email = serializers.EmailField()
+    full_name = serializers.CharField(
+        min_length=FULL_NAME_MIN_LENGTH,
+        max_length=FULL_NAME_MAX_LENGTH,
+        error_messages={
+            'min_length': 'Full name must be 2 to 150 characters.',
+            'max_length': 'Full name must be 2 to 150 characters.',
+        },
+    )
+    email = serializers.EmailField(max_length=EMAIL_MAX_LENGTH)
     password = serializers.CharField(write_only=True, style={'input_type': 'password'})
     password2 = serializers.CharField(write_only=True, style={'input_type': 'password'})
 
-    def validate_username(self, value):
-        username = value.strip()
-        if User.objects.filter(username__iexact=username).exists():
-            raise serializers.ValidationError('A user with that username already exists.')
-        return username
+    def validate_full_name(self, value):
+        try:
+            return validate_signup_full_name(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(list(exc.messages)) from exc
 
     def validate_email(self, value):
-        email = value.strip().lower()
+        try:
+            email = validate_signup_email(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(list(exc.messages)) from exc
         if User.objects.filter(email__iexact=email).exists():
             raise serializers.ValidationError('A user with that email already exists.')
         return email
@@ -60,8 +64,13 @@ class SignupSerializer(serializers.Serializer):
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError({'password2': 'Passwords do not match.'})
 
-        user = User(username=attrs['username'], email=attrs['email'])
+        user = User(
+            username=build_unique_username(attrs['email'], attrs['full_name']),
+            email=attrs['email'],
+            first_name=attrs['full_name'],
+        )
         try:
+            validate_signup_password(attrs['password'])
             validate_password(attrs['password'], user=user)
         except DjangoValidationError as exc:
             raise serializers.ValidationError({'password': list(exc.messages)}) from exc
@@ -70,7 +79,14 @@ class SignupSerializer(serializers.Serializer):
     def create(self, validated_data):
         validated_data.pop('password2')
         password = validated_data.pop('password')
-        user = User.objects.create_user(**validated_data, password=password)
+        full_name = validated_data.pop('full_name')
+        email = validated_data.pop('email')
+        user = User.objects.create_user(
+            username=build_unique_username(email, full_name),
+            email=email,
+            password=password,
+            first_name=full_name,
+        )
         user.is_active = False
         user.save(update_fields=['is_active'])
         send_email_verification_otp(user)
@@ -127,15 +143,13 @@ class ResendEmailOTPSerializer(serializers.Serializer):
 
 
 class LoginSerializer(serializers.Serializer):
-    username = serializers.CharField()
+    email = serializers.EmailField()
     password = serializers.CharField(write_only=True, style={'input_type': 'password'})
 
     def validate(self, attrs):
-        identifier = attrs['username'].strip()
+        email = attrs['email'].strip().lower()
         password = attrs['password']
-        user = User.objects.filter(username__iexact=identifier).first()
-        if not user:
-            user = User.objects.filter(email__iexact=identifier).first()
+        user = User.objects.filter(email__iexact=email).first()
 
         if not user or not user.check_password(password):
             raise serializers.ValidationError('Invalid credentials.')
@@ -166,8 +180,12 @@ class GoogleLoginSerializer(serializers.Serializer):
 
         if not user:
             user = User.objects.create_user(
-                username=build_unique_username(email, payload.get('given_name', '')),
+                username=build_unique_username(
+                    email,
+                    payload.get('name') or payload.get('given_name', ''),
+                ),
                 email=email,
+                first_name=payload.get('name') or payload.get('given_name', ''),
             )
             user.set_unusable_password()
             user.save(update_fields=['password'])

@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.urls import reverse
 
 from .models import EmailVerificationToken, OneTimePassword
+from .user_utils import get_user_full_name
 
 
 def generate_otp_code():
@@ -30,7 +31,7 @@ def send_email_verification_otp(user):
     send_mail(
         subject='Verify your email address',
         message=(
-            f'Hi {user.username},\n\n'
+            f'Hi {get_user_full_name(user)},\n\n'
             f'Your email verification OTP is: {otp.code}\n\n'
             f'This code expires in {OneTimePassword.EXPIRY_MINUTES} minutes.'
         ),
@@ -46,7 +47,7 @@ def send_password_reset_otp(user):
     send_mail(
         subject='Reset your password',
         message=(
-            f'Hi {user.username},\n\n'
+            f'Hi {get_user_full_name(user)},\n\n'
             f'Your password reset OTP is: {otp.code}\n\n'
             f'This code expires in {OneTimePassword.EXPIRY_MINUTES} minutes.'
         ),
@@ -69,7 +70,7 @@ def send_verification_email(request, user):
     send_mail(
         subject='Verify your email address',
         message=(
-            f'Hi {user.username},\n\n'
+            f'Hi {get_user_full_name(user)},\n\n'
             f'Please verify your email address by opening this link:\n{verify_url}\n\n'
             'This link expires in 24 hours.'
         ),

@@ -11,7 +11,7 @@
     </div>
 
     <p>
-        Hello <strong>{{ user.username }}</strong>.
+        Hello <strong>{% firstof user.get_full_name user.username %}</strong>.
         Your account email is <strong>{{ user.email|default:"not set" }}</strong>.
     </p>
 
