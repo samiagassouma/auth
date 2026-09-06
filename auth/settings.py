@@ -13,10 +13,11 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from datetime import timedelta
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
+load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
@@ -29,9 +30,28 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1:3000",
+    "http://localhost:3000",
+]
+CORS_ALLOW_CREDENTIALS = True
 
+# Facebook settings
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = "http"
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://18f5-196-229-203-180.ngrok-free.app"
+]
+
+# SOCIALACCOUNT_FORMS = {
+#     "signup": "accounts.forms.CustomSocialSignupForm",
+# }
+
+SITE_ID = 1
 # Application definition
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -41,8 +61,57 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    "drf_spectacular",
     'rest_framework_simplejwt',
-    'accounts',
+    # 'accounts',
+    "corsheaders",
+    # 'Offre_mission',
+    # 'Offre_poste',
+    # 'Company',
+    # Django apps
+    "django.contrib.sites",
+
+    # Allauth
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+
+    # Providers (optional)
+    'allauth.socialaccount.providers.openid_connect',  # linkedIn
+    "allauth.socialaccount.providers.twitter_oauth2",
+    "allauth.socialaccount.providers.facebook",
+    "allauth.socialaccount.providers.instagram",
+    "allauth.socialaccount.providers.google",
+    "allauth.socialaccount.providers.github",
+    "allauth.socialaccount.providers.telegram",
+    "allauth.socialaccount.providers.yahoo",
+    # "allauth.socialaccount.providers.oauth2", # For custom providers like Behance, Dribbble, Upwork
+    # "allauth.socialaccount.providers.oauth",  # For custom providers that use OAuth 1.0a
+    # "allauth.socialaccount.providers.oauth2_client",  # For custom OAuth2 providers without built-in support
+    # "allauth.socialaccount.providers.oauth_client",  # For custom OAuth1 providers without built-in support
+    # "allauth.socialaccount.providers.base",  # Base provider for custom implementations
+    # "allauth.socialaccount.providers.core",  # Core provider for shared functionality
+    # "allauth.socialaccount.providers.openid",  # For OpenID providers
+    # "allauth.socialaccount.providers.saml",  # For SAML providers
+    # "allauth.socialaccount.providers.cas",  # For CAS providers
+    # "allauth.socialaccount.providers.oauth2_provider",  # For custom OAuth2 providers with more control
+    # "allauth.socialaccount.providers.oauth_provider",  # For custom OAuth1 providers with more control
+    # "allauth.socialaccount.providers.oauth2_generic",  # For generic OAuth2 providers
+    # "allauth.socialaccount.providers.oauth_generic",  # For generic OAuth1 providers
+    # "allauth.socialaccount.providers.openid_generic",  # For generic OpenID providers
+    # "allauth.socialaccount.providers.saml_generic",  # For generic SAML providers
+    # "allauth.socialaccount.providers.cas_generic",  # For generic CAS providers
+    # "allauth.socialaccount.providers.oauth2_client_generic",  # For generic OAuth2 client providers
+    # "allauth.socialaccount.providers.oauth_client_generic",  # For generic OAuth1 client providers
+    # "allauth.socialaccount.providers.base_generic",  # For generic base providers
+    # "allauth.socialaccount.providers.core_generic",  # For generic core providers
+    "allauth.socialaccount.providers.microsoft",  # For generic OpenID providers
+    "allauth.socialaccount.providers.apple",  # For generic OpenID providers
+    "allauth.socialaccount.providers.slack",  # For generic OpenID providers
+    "accounts.providers.adobe",
+    "accounts.providers.dribbble",
+    # "accounts.apps.UsersConfig"
+    "accounts.apps.AccountsConfig",
 ]
 
 MIDDLEWARE = [
@@ -53,9 +122,312 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "allauth.account.middleware.AccountMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+
 ]
 
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "django.request": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+        },
+        "allauth": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+        },
+        "allauth.socialaccount": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+        },
+    },
+}
+
 ROOT_URLCONF = 'auth.urls'
+
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+FRONTEND_URL = "http://localhost:3000"
+
+ADOBE_CLIENT_ID = os.getenv("ADOBE_CLIENT_ID")
+ADOBE_CLIENT_SECRET = os.getenv("ADOBE_CLIENT_SECRET")
+ADOBE_REDIRECT_URI = os.getenv("ADOBE_REDIRECT_URI")
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
+
+LINKEDIN_CLIENT_ID = os.getenv("LINKEDIN_CLIENT_ID")
+LINKEDIN_CLIENT_SECRET = os.getenv("LINKEDIN_CLIENT_SECRET")
+LINKEDIN_REDIRECT_URI = os.getenv("LINKEDIN_REDIRECT_URI")
+
+GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
+GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
+GITHUB_REDIRECT_URI = os.getenv("GITHUB_REDIRECT_URI")
+
+TWITTER_CLIENT_ID = os.getenv("TWITTER_CLIENT_ID")
+TWITTER_CLIENT_SECRET = os.getenv("TWITTER_CLIENT_SECRET")
+TWITTER_REDIRECT_URI = os.getenv("TWITTER_REDIRECT_URI")
+
+FACEBOOK_CLIENT_ID = os.getenv("FACEBOOK_CLIENT_ID")
+FACEBOOK_CLIENT_SECRET = os.getenv("FACEBOOK_CLIENT_SECRET")
+FACEBOOK_REDIRECT_URI = os.getenv("FACEBOOK_REDIRECT_URI")
+
+INSTAGRAM_CLIENT_ID = os.getenv("INSTAGRAM_CLIENT_ID")
+INSTAGRAM_CLIENT_SECRET = os.getenv("INSTAGRAM_CLIENT_SECRET")
+INSTAGRAM_REDIRECT_URI = os.getenv("INSTAGRAM_REDIRECT_URI")
+
+DRIBBBLE_CLIENT_ID = os.getenv("DRIBBBLE_CLIENT_ID")
+DRIBBBLE_CLIENT_SECRET = os.getenv("DRIBBBLE_CLIENT_SECRET")
+DRIBBBLE_REDIRECT_URI = os.getenv("DRIBBBLE_REDIRECT_URI")
+
+YAHOO_CLIENT_ID = os.getenv("YAHOO_CLIENT_ID")
+YAHOO_CLIENT_SECRET = os.getenv("YAHOO_CLIENT_SECRET")
+YAHOO_REDIRECT_URI = os.getenv("YAHOO_REDIRECT_URI")
+
+MICROSOFT_CLIENT_ID = os.getenv("MICROSOFT_CLIENT_ID")
+MICROSOFT_CLIENT_SECRET = os.getenv("MICROSOFT_CLIENT_SECRET")
+MICROSOFT_REDIRECT_URI = os.getenv("MICROSOFT_REDIRECT_URI")
+
+SLACK_CLIENT_ID = os.getenv("SLACK_CLIENT_ID")
+SLACK_CLIENT_SECRET = os.getenv("SLACK_CLIENT_SECRET")
+SLACK_REDIRECT_URI = os.getenv("SLACK_REDIRECT_URI")
+
+SOCIALACCOUNT_PROVIDERS = {
+    #     "slack": {
+    #     "SCOPE": [
+    #         "openid",
+    #         "profile",
+    #         "email",
+    #     ],
+    #     "APPS": [
+    #         {
+    #             "provider_id": "slack",
+    #             "name": "Slack",
+    #             "client_id": SLACK_CLIENT_ID,
+    #             "secret": SLACK_CLIENT_SECRET,
+    #             "key": "",
+    #         }
+    #     ],
+    # },
+    # "apple": {
+    #     "APPS": [{
+    #         # Your service identifier.
+    #         "client_id": "your.service.id",
+
+    #         # The Key ID (visible in the "View Key Details" page).
+    #         "secret": "KEYID",
+
+    #          # Member ID/App ID Prefix -- you can find it below your name
+    #          # at the top right corner of the page, or it’s your App ID
+    #          # Prefix in your App ID.
+    #         "key": "MEMAPPIDPREFIX",
+
+    #         "settings": {
+    #             # The certificate you downloaded when generating the key.
+    #             "certificate_key": """-----BEGIN PRIVATE KEY-----
+    #                 s3cr3ts3cr3ts3cr3ts3cr3ts3cr3ts3cr3ts3cr3ts3cr3ts3cr3ts3cr3ts3cr
+    #                 3ts3cr3ts3cr3ts3cr3ts3cr3ts3cr3ts3cr3ts3cr3ts3cr3ts3cr3ts3cr3ts3
+    #                 c3ts3cr3t
+    #                 -----END PRIVATE KEY-----
+    #                 """
+    #         }
+    #     }]
+    # },
+    "openid_connect": {
+        "APPS": [
+            {
+                "provider_id": "linkedin",
+                "name": "LinkedIn",
+                "client_id": LINKEDIN_CLIENT_ID,
+                "secret": LINKEDIN_CLIENT_SECRET,
+                "settings": {
+                    "server_url": "https://www.linkedin.com/oauth",
+                },
+            }
+        ]
+    },
+    "twitter_oauth2": {
+        "APPS": [
+            {
+                "provider_id": "twitter",
+                "name": "Twitter",
+                "client_id": TWITTER_CLIENT_ID,
+                "secret": TWITTER_CLIENT_SECRET,
+                "settings": {
+                    "scope": [
+                        "tweet.read",
+                        "users.read",
+                        "offline.access",
+                        "users.email",
+                    ],
+                },
+            }
+        ]
+    },
+
+    "facebook": {
+        "METHOD": "oauth2",
+        "SCOPE": [
+            "email",
+            "public_profile",
+        ],
+        "FIELDS": [
+            "id",
+            "email",
+            "name",
+            "first_name",
+            "last_name",
+            "picture",
+        ],
+        "EMAIL_AUTHENTICATION": True,
+        "VERIFIED_EMAIL": True,
+        "AUTH_PARAMS": {
+            "auth_type": "reauthenticate",
+        },
+        "APPS": [
+            {
+                "client_id": FACEBOOK_CLIENT_ID,
+                "secret": FACEBOOK_CLIENT_SECRET,
+                "key": "",
+            }
+        ],
+    },
+    "instagram": {
+        "METHOD": "oauth2",
+        "SCOPE": [
+            "instagram_business_basic",
+        ],
+        # "AUTHORIZE_URL": "https://www.instagram.com/oauth/authorize",
+
+        "AUTH_PARAMS": {
+            "force_reauth": "0",
+            "enable_fb_login": "0",
+        },
+        "APPS": [
+            {
+                "provider_id": "instagram",
+                "name": "instagram",
+                "client_id": INSTAGRAM_CLIENT_ID,
+                "secret": INSTAGRAM_CLIENT_SECRET,
+                "key": "",
+            }
+        ],
+    },
+    "google": {
+        "SCOPE": [
+            "profile",
+            "email",
+        ],
+        "AUTH_PARAMS": {
+            "access_type": "offline",
+            "prompt": "select_account",
+        },
+        "OAUTH_PKCE_ENABLED": True,
+        "APPS": [
+            {
+                "client_id": GOOGLE_CLIENT_ID,
+                "secret": GOOGLE_CLIENT_SECRET,
+                "key": "",
+            }
+        ],
+    },
+    "adobe": {
+        "SCOPE": [
+            "openid",
+            "AdobeID",
+            "email",
+            "profile",
+        ],
+        "EMAIL_AUTHENTICATION": True,
+        "APPS": [
+            {
+                "provider_id": "adobe",
+                "name": "Adobe",
+                "client_id": ADOBE_CLIENT_ID,
+                "secret": ADOBE_CLIENT_SECRET,
+                "key": "",
+            }
+        ],
+    },
+    "dribbble": {
+        "SCOPE": [
+            "public",
+        ],
+        "EMAIL_AUTHENTICATION": True,
+        "APPS": [
+            {
+                "provider_id": "dribbble",
+                "name": "Dribbble",
+                "client_id": DRIBBBLE_CLIENT_ID,
+                "secret": DRIBBBLE_CLIENT_SECRET,
+                "key": "",
+            }
+        ],
+    },
+
+    # 'github': {
+    #     "APP": {
+    #         "provider_id": 'github',
+    #         "name": 'GitHub',
+    #         "client_id": GITHUB_CLIENT_ID,
+    #         "secret": GITHUB_CLIENT_SECRET,
+    #         "key": "",
+    #     },
+    #     'SCOPE': [
+    #         'user',
+    #     ],
+    # },
+
+    # 'telegram': {
+    #     'APP': {
+    #         'client_id': '<bot_id>',
+
+    #         # NOTE: For the secret, be sure to provide the complete bot token,
+    #         # which typically includes the bot ID as a prefix.
+    #         'secret': '<bot token>',
+    #     },
+    #     'AUTH_PARAMS': {'auth_date_validity': 30},
+    # }
+    # ,
+    #     "yahoo": {
+    #     "SCOPE": ["openid", "email", "profile"],
+    #     "OAUTH_PKCE_ENABLED": False,
+    #     'APPS': [
+    #         {
+    #             "provider_id": "yahoo",
+    #             "name": "Yahoo",
+    #             "client_id": YAHOO_CLIENT_ID,
+    #             "secret": YAHOO_CLIENT_SECRET,
+    #             "key": "",
+    #         }
+    #     ]
+    # },
+    #  "microsoft": {
+    #     "APPS": [
+    #         {
+    #             "client_id": MICROSOFT_CLIENT_ID,
+    #             "secret": MICROSOFT_CLIENT_SECRET,
+    #             "settings": {
+    #                         "tenant": "common",
+    #                     }
+    #         }
+    #     ],
+    #     "SCOPE": ["openid", "email", "profile", "User.Read"],
+    #     "AUTH_PARAMS": {
+    #         "prompt": "select_account",
+    #     },
+    # }
+
+}
 
 TEMPLATES = [
     {
@@ -75,17 +447,27 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'auth.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'auth-db',
+        'USER': 'postgres',
+        'PASSWORD': 'root',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -105,7 +487,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
@@ -117,14 +498,13 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
 
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'dashboard'
+LOGIN_REDIRECT_URL = 'http://localhost:3000/'
 LOGOUT_REDIRECT_URL = 'login'
 DEFAULT_FROM_EMAIL = 'Auth Demo <no-reply@example.com>'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
@@ -133,10 +513,53 @@ GOOGLE_OAUTH2_CLIENT_ID = os.environ.get(
     '257933467256-brmpt5peeuoven9fafa1p0l0j85nq7b2.apps.googleusercontent.com',
 )
 
+AUTH_USER_MODEL = 'accounts.User'
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+ACCOUNT_LOGIN_METHODS = {"email"}
+
+ACCOUNT_SIGNUP_FIELDS = [
+    "email*",
+    "password1*",
+    "password2*",
+]
+
+ACCOUNT_SIGNUP_FIELDS = [
+    "username*",
+    "email",
+]
+
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_QUERY_EMAIL = True
+
+SOCIALACCOUNT_ADAPTER = "accounts.adapters.MySocialAccountAdapter"
+
+LOGIN_REDIRECT_URL = "http://127.0.0.1:3000/"
+ACCOUNT_SIGNUP_REDIRECT_URL = "http://127.0.0.1:3000/"
+# Permanently connect Facebook to the matched Django user.
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    "DEFAULT_SCHEMA_CLASS": (
+        "drf_spectacular.openapi.AutoSchema"
+    ),
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Authentication API",
+    "DESCRIPTION": (
+        "API documentation for authentication, social login "
+        "and user management."
+    ),
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }
 
 SIMPLE_JWT = {
@@ -150,4 +573,3 @@ SIMPLE_JWT = {
 # EMAIL_USE_TLS = True
 # EMAIL_HOST_USER = 'gassouma530@gmail.com'
 # EMAIL_HOST_PASSWORD = 'xuoi siru xtxv brhf'
-

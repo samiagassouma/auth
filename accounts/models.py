@@ -4,9 +4,47 @@ from datetime import timedelta
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.models import AbstractUser
+# from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+#
+# class User(AbstractBaseUser, PermissionsMixin):
+#
+#     email = models.EmailField(unique=True)
+#     full_name = models.CharField(max_length=150)
+#
+#     USERNAME_FIELD = "email"
+#
+#     REQUIRED_FIELDS = []
+
+# class User(AbstractUser):
+#     full_name = models.CharField(max_length=150, blank=True)
+#
+#     def __str__(self):
+#         return self.email or self.username
+
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+
+
+class User(AbstractUser):
+    full_name = models.CharField(
+        max_length=150,
+        blank=True,
+    )
+
+    email = models.EmailField(
+        unique=True,
+        blank=True,
+        null=True,
+    )
+
+    def __str__(self):
+        return self.full_name or self.username
 
 
 class EmailVerificationToken(models.Model):
+    """Stores the single active email-verification link for a user."""
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -36,13 +74,15 @@ class EmailVerificationToken(models.Model):
 
 
 class OneTimePassword(models.Model):
+    """Short-lived numeric codes used by email verification and password reset flows."""
+
     EMAIL_VERIFICATION = 'email_verification'
     PASSWORD_RESET = 'password_reset'
     PURPOSE_CHOICES = (
         (EMAIL_VERIFICATION, 'Email verification'),
         (PASSWORD_RESET, 'Password reset'),
     )
-    EXPIRY_MINUTES = 10
+    EXPIRY_MINUTES = 3
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

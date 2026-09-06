@@ -10,10 +10,14 @@ from .user_utils import get_user_full_name
 
 
 def generate_otp_code():
+    """Return a zero-padded six-digit code."""
+
     return f'{secrets.randbelow(1000000):06d}'
 
 
 def create_otp(user, purpose):
+    """Create a fresh OTP and retire any previous unused code for the same flow."""
+
     OneTimePassword.objects.filter(
         user=user,
         purpose=purpose,
@@ -27,6 +31,8 @@ def create_otp(user, purpose):
 
 
 def send_email_verification_otp(user):
+    """Email a short-lived OTP for the legacy email-verification flow."""
+
     otp = create_otp(user, OneTimePassword.EMAIL_VERIFICATION)
     send_mail(
         subject='Verify your email address',
@@ -43,6 +49,8 @@ def send_email_verification_otp(user):
 
 
 def send_password_reset_otp(user):
+    """Email a password-reset OTP without revealing whether the caller knows the user."""
+
     otp = create_otp(user, OneTimePassword.PASSWORD_RESET)
     send_mail(
         subject='Reset your password',
@@ -59,12 +67,18 @@ def send_password_reset_otp(user):
 
 
 def send_verification_email(request, user):
+    """Email the user a reusable verification-token link for account activation."""
+
     verification, _ = EmailVerificationToken.objects.update_or_create(
         user=user,
         defaults={},
     )
-    verify_url = request.build_absolute_uri(
-        reverse('verify_email', kwargs={'token': verification.token})
+    # verify_url = request.build_absolute_uri(
+    #     reverse('api_verify_email', kwargs={'token': verification.token})
+    # )
+    verify_url = (
+        f"{settings.FRONTEND_URL}/verify-email"
+        f"?token={verification.token}"
     )
 
     send_mail(

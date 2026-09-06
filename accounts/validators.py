@@ -20,6 +20,8 @@ email_validator = EmailValidator(message=EMAIL_RULE_MESSAGE)
 
 
 def validate_signup_full_name(full_name):
+    """Normalize display names and enforce the public signup length limits."""
+
     full_name = ' '.join(full_name.split())
 
     if len(full_name) < FULL_NAME_MIN_LENGTH or len(full_name) > FULL_NAME_MAX_LENGTH:
@@ -29,6 +31,8 @@ def validate_signup_full_name(full_name):
 
 
 def validate_signup_email(email):
+    """Normalize email input before applying Django's email validator."""
+
     email = email.strip().lower()
 
     if len(email) > EMAIL_MAX_LENGTH:
@@ -41,6 +45,8 @@ def validate_signup_email(email):
 
 
 def validate_signup_password(password):
+    """Apply the project's password complexity rules before Django's validators run."""
+
     errors = []
 
     if len(password) < 8:
